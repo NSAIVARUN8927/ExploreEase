@@ -25,7 +25,11 @@ import {
   Wallet,
   Clock,
   Heart,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ChevronDown,
+  Mail,
+  LockKeyhole,
+  Save
 } from 'lucide-react';
 
 import api from './api';
@@ -48,6 +52,20 @@ const money = (n) =>
 
 function Shell({ children, user, setUser }) {
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileMode, setProfileMode] = useState('');
+  const [profileName, setProfileName] = useState(user?.full_name || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const [profileBusy, setProfileBusy] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setProfileName(user?.full_name || '');
+  }, [user]);
 
   const nav = [
     ['/', 'Overview', Compass],
@@ -62,6 +80,46 @@ function Shell({ children, user, setUser }) {
   function logout() {
     localStorage.removeItem('ee_token');
     setUser(null);
+    setProfileOpen(false);
+    navigate('/login');
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    setProfileBusy(true);
+    setProfileError('');
+    setProfileMessage('');
+    try {
+      const response = await api.patch('/auth/profile', { full_name: profileName.trim() });
+      setUser(response.data);
+      setProfileMode('');
+      setProfileMessage('Profile updated successfully.');
+    } catch (error) {
+      setProfileError(error.response?.data?.detail || 'Could not update your profile.');
+    } finally {
+      setProfileBusy(false);
+    }
+  }
+
+  async function changePassword(e) {
+    e.preventDefault();
+    setProfileError('');
+    setProfileMessage('');
+    if (newPassword.length < 8) return setProfileError('New password must contain at least 8 characters.');
+    if (newPassword !== confirmPassword) return setProfileError('New passwords do not match.');
+    setProfileBusy(true);
+    try {
+      await api.patch('/auth/password', { current_password: currentPassword, new_password: newPassword });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setProfileMode('');
+      setProfileMessage('Password changed successfully.');
+    } catch (error) {
+      setProfileError(error.response?.data?.detail || 'Could not change your password.');
+    } finally {
+      setProfileBusy(false);
+    }
   }
 
   return (
@@ -109,31 +167,7 @@ function Shell({ children, user, setUser }) {
             </Link>
           </div>
 
-          {user ? (
-            <button className="profile-mini" onClick={logout}>
-              <span className="avatar">
-                {user.full_name?.[0] || 'U'}
-              </span>
 
-              <span>
-                <b>{user.full_name}</b>
-                <small>Sign out</small>
-              </span>
-
-              <LogOut size={16} />
-            </button>
-          ) : (
-            <Link className="profile-mini" to="/login">
-              <span className="avatar">
-                <User />
-              </span>
-
-              <span>
-                <b>Guest traveler</b>
-                <small>Sign in to save trips</small>
-              </span>
-            </Link>
-          )}
 
         </div>
       </aside>
@@ -159,13 +193,44 @@ function Shell({ children, user, setUser }) {
             </span>
 
             {user ? (
-              <span className="top-avatar">
-                {user.full_name?.[0]}
-              </span>
+              <div className="profile-menu-wrap">
+                <button type="button" className="top-avatar-button" onClick={() => { setProfileOpen(v => !v); setProfileMode(''); setProfileError(''); setProfileMessage(''); }} aria-label="Open account menu" aria-expanded={profileOpen}>
+                  <span className="top-avatar">{user.full_name?.[0]?.toUpperCase() || 'U'}</span>
+                  <ChevronDown size={15} />
+                </button>
+                {profileOpen && <>
+                  <button type="button" className="profile-menu-backdrop" aria-label="Close account menu" onClick={() => { setProfileOpen(false); setProfileMode(''); }} />
+                  <section className="profile-dropdown">
+                    <div className="profile-dropdown-head">
+                      <span className="profile-dropdown-avatar">{user.full_name?.[0]?.toUpperCase() || 'U'}</span>
+                      <div><strong>{user.full_name}</strong><small><Mail size={13} /> {user.email}</small></div>
+                    </div>
+                    {profileMessage && <div className="profile-success">{profileMessage}</div>}
+                    {profileError && <div className="profile-error">{profileError}</div>}
+                    {profileMode === 'edit' ? (
+                      <form className="profile-form" onSubmit={saveProfile}>
+                        <label>Full name<input value={profileName} onChange={e => setProfileName(e.target.value)} minLength="2" maxLength="120" required /></label>
+                        <div className="profile-form-actions"><button type="button" onClick={() => setProfileMode('')}>Cancel</button><button type="submit" disabled={profileBusy}><Save size={14} /> {profileBusy ? 'Saving…' : 'Save changes'}</button></div>
+                      </form>
+                    ) : profileMode === 'password' ? (
+                      <form className="profile-form" onSubmit={changePassword}>
+                        <label>Current password<input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} autoComplete="current-password" required /></label>
+                        <label>New password<input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength="8" autoComplete="new-password" required /></label>
+                        <label>Confirm new password<input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength="8" autoComplete="new-password" required /></label>
+                        <div className="profile-form-actions"><button type="button" onClick={() => setProfileMode('')}>Cancel</button><button type="submit" disabled={profileBusy}><LockKeyhole size={14} /> {profileBusy ? 'Updating…' : 'Update password'}</button></div>
+                      </form>
+                    ) : (
+                      <div className="profile-menu-actions">
+                        <button type="button" onClick={() => { setProfileName(user.full_name || ''); setProfileMode('edit'); setProfileError(''); setProfileMessage(''); }}><User size={16} /> Edit profile</button>
+                        <button type="button" onClick={() => { setProfileMode('password'); setProfileError(''); setProfileMessage(''); }}><LockKeyhole size={16} /> Change password</button>
+                        <button type="button" className="profile-signout" onClick={logout}><LogOut size={16} /> Sign out</button>
+                      </div>
+                    )}
+                  </section>
+                </>}
+              </div>
             ) : (
-              <Link className="signin-link" to="/login">
-                Sign in <ArrowRight size={15} />
-              </Link>
+              <Link className="signin-link" to="/login">Sign in <ArrowRight size={15} /></Link>
             )}
           </div>
 
