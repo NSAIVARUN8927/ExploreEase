@@ -128,9 +128,7 @@ function Shell({ children, user, setUser }) {
       <aside className={`sidebar ${open ? 'show' : ''}`}>
 
         <Link to="/" className="brand">
-          <span className="brand-icon">
-            <Compass />
-          </span>
+          <img className="brand-logo" src="/exploreease-logo.svg" alt="ExploreEase logo" />
 
           <span>
             explore<span className="brand-light">ease</span>
@@ -1896,12 +1894,12 @@ function Auth({ mode, setUser }) {
 
         mode === 'register'
           ? {
-              full_name: name,
-              email,
+              full_name: name.trim(),
+              email: email.trim().toLowerCase(),
               password
             }
           : {
-              email,
+              email: email.trim().toLowerCase(),
               password
             }
       );
@@ -1917,7 +1915,9 @@ function Auth({ mode, setUser }) {
     } catch (e) {
       setError(
         e.response?.data?.detail ||
-        'Authentication failed. Please try again.'
+        (e.response
+          ? 'Sign in failed. Please check your email and password.'
+          : 'Cannot connect to the ExploreEase server. Please try again shortly.')
       );
     } finally {
       setBusy(false);
@@ -1931,9 +1931,7 @@ function Auth({ mode, setUser }) {
 
         <Link to="/" className="brand auth-brand">
 
-          <span className="brand-icon">
-            <Compass />
-          </span>
+          <img className="brand-logo" src="/exploreease-logo.svg" alt="ExploreEase logo" />
 
           <span>
             explore<span className="brand-light">ease</span>
