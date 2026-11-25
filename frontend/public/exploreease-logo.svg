@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">ExploreEase</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#142b45"/>
+      <stop offset="1" stop-color="#071525"/>
+    </linearGradient>
+    <linearGradient id="needle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="118" height="118" rx="32" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="43" fill="none" stroke="#38bdf8" stroke-width="5" opacity=".95"/>
+  <circle cx="64" cy="64" r="31" fill="none" stroke="#8bdcf9" stroke-width="1.5" opacity=".45"/>
+  <path d="M83 34 69 69 34 84 48 49Z" fill="url(#needle)"/>
+  <path d="m69 69 14-35-35 15Z" fill="#e0f7ff"/>
+  <circle cx="64" cy="64" r="5" fill="#b7f36b" stroke="#071525" stroke-width="2"/>
+  <path d="M64 14v8M64 106v8M14 64h8M106 64h8" stroke="#b7f36b" stroke-width="3" stroke-linecap="round"/>
+</svg>
