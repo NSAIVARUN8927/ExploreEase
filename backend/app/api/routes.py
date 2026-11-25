@@ -6,7 +6,7 @@ import pandas as pd
 
 from app.db.database import get_db
 from app.models.user import User, SavedPlace, SavedTrip
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse, PasswordChangeRequest
 from app.schemas.travel import TripPlanRequest, ReviewAnalysisRequest, SavedPlaceCreate, SaveTripRequest, ProfileUpdateRequest
 from app.core.security import hash_password, verify_password, create_access_token
 from app.api.dependencies import get_current_user
@@ -298,3 +298,12 @@ def update_profile(payload: ProfileUpdateRequest, user: User = Depends(get_curre
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.patch("/auth/password")
+def change_password(payload: PasswordChangeRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
