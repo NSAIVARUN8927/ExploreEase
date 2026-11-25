@@ -376,54 +376,132 @@ function SavePlaceButton({ place }) {
 // PLACE CARD
 // =====================================================
 
+// Cache destination images so the same place is not searched repeatedly.
+const placeImageCache = new Map();
+
 function PlaceCard({ place, index = 0 }) {
   const name = place.Place_Name || 'Local discovery';
   const city = place.City || '';
   const cat = place.Category || 'Place';
+  const [imageUrl, setImageUrl] = useState(
+    place.Image_URL || place.image_url || place.image || ''
+  );
+  const [imageLoading, setImageLoading] = useState(false);
 
-  const imgs = [
-    'photo-1519608487953-e999c86e7455',
-    'photo-1501785888041-af3ef285b470',
-    'photo-1518005020951-ecc8e9c5f8c1',
-    'photo-1500530855697-b586d89ba3ee',
-    'photo-1470770841072-f978cf4d019e',
-    'photo-1464822759023-fed622ff2c3b'
-  ];
+  useEffect(() => {
+    let active = true;
+    const existingImage = place.Image_URL || place.image_url || place.image;
+
+    if (existingImage) {
+      setImageUrl(existingImage);
+      return () => { active = false; };
+    }
+
+    const cacheKey = `${name.trim().toLowerCase()}|${city.trim().toLowerCase()}`;
+    const cachedImage = placeImageCache.get(cacheKey) ||
+      (() => {
+        try {
+          const saved = localStorage.getItem(`ee_place_image_${cacheKey}`);
+          return saved ? JSON.parse(saved) : null;
+        } catch {
+          return null;
+        }
+      })();
+
+    if (cachedImage?.url) {
+      setImageUrl(cachedImage.url);
+      placeImageCache.set(cacheKey, cachedImage);
+      return () => { active = false; };
+    }
+
+    const accessKey = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
+    if (!accessKey || !name || name === 'Local discovery') {
+      return () => { active = false; };
+    }
+
+    setImageLoading(true);
+    // Search for the exact destination and its city, not a generic travel image.
+    const searchTerms = [name, city, 'India'].filter(Boolean).join(' ');
+    fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerms)}&per_page=10&orientation=landscape&content_filter=high`,
+      { headers: { Authorization: `Client-ID ${accessKey}` } }
+    )
+      .then((response) => {
+        if (!response.ok) throw new Error(`Unsplash request failed: ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        if (!active) return;
+        const photos = data.results || [];
+        // Unsplash ranks results against the full destination query. Prefer a
+        // result whose title/description also mentions the actual place or city.
+        const terms = [name, city].filter(Boolean).map((term) => term.toLowerCase());
+        const bestMatch = photos.find((photo) => {
+          const description = [
+            photo.alt_description,
+            photo.description,
+            photo.user?.name
+          ].filter(Boolean).join(' ').toLowerCase();
+          return terms.some((term) => term.length > 2 && description.includes(term));
+        }) || photos[0];
+
+        if (bestMatch?.urls?.regular) {
+          const result = {
+            url: `${bestMatch.urls.regular}&auto=format&fit=crop&w=900&q=85`,
+            photographer: bestMatch.user?.name || '',
+            photographerUrl: bestMatch.user?.links?.html || '',
+            photoUrl: bestMatch.links?.html || ''
+          };
+          setImageUrl(result.url);
+          placeImageCache.set(cacheKey, result);
+          try {
+            localStorage.setItem(`ee_place_image_${cacheKey}`, JSON.stringify(result));
+          } catch {
+            // The card still works if browser storage is unavailable.
+          }
+        }
+      })
+      .catch((error) => {
+        console.warn(`Could not load a destination image for ${name}:`, error);
+      })
+      .finally(() => {
+        if (active) setImageLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [name, city, place.Image_URL, place.image_url, place.image]);
 
   return (
     <article className="place-card">
-
       <Link to={`/place/${encodeURIComponent(name)}`}>
-
         <div
           className="place-image"
           style={{
-            backgroundImage: `url(https://images.unsplash.com/${imgs[index % imgs.length]}?auto=format&fit=crop&w=700&q=80)`
+            backgroundImage: imageUrl
+              ? `url("${imageUrl}")`
+              : 'linear-gradient(135deg, #dbeafe 0%, #c7d2fe 50%, #e0e7ff 100%)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
           }}
+          aria-label={`${name}${city ? `, ${city}` : ''} photograph`}
         >
           <span>{cat}</span>
-
           <SavePlaceButton place={place} />
-
+          {!imageUrl && imageLoading && (
+            <span className="place-image-loading">Finding destination photo…</span>
+          )}
         </div>
 
         <div className="place-info">
-
           <h3>{name}</h3>
-
           <div className="place-meta">
             <MapPin size={14} />
             {city || 'Explore nearby'}
             <span>·</span>
-            {place.Latitude && place.Longitude
-              ? 'Mapped location'
-              : 'Discover'}
+            {place.Latitude && place.Longitude ? 'Mapped location' : 'Discover'}
           </div>
-
         </div>
-
       </Link>
-
     </article>
   );
 }
