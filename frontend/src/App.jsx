@@ -2046,16 +2046,34 @@ function Auth({ mode, setUser }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(
+    () => Boolean(localStorage.getItem('ee_token'))
+  );
 
   useEffect(() => {
-    if (localStorage.getItem('ee_token')) {
-      api.get('/auth/me')
-        .then((r) => setUser(r.data))
-        .catch(() => {
+    const token = localStorage.getItem('ee_token');
+    if (!token) return;
+
+    api.get('/auth/me')
+      .then((response) => setUser(response.data))
+      .catch((error) => {
+        // Only discard a token when the API confirms it is invalid.
+        // A cold start or temporary network failure must not sign the user out.
+        if ([401, 403].includes(error.response?.status)) {
           localStorage.removeItem('ee_token');
-        });
-    }
+        }
+      })
+      .finally(() => setAuthLoading(false));
   }, []);
+
+  if (authLoading) {
+    return (
+      <div className="auth-restoring">
+        <img src="/exploreease-logo.svg" alt="ExploreEase" />
+        <span>Restoring your session…</span>
+      </div>
+    );
+  }
 
   return (
     <Routes>
