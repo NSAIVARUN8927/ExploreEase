@@ -376,65 +376,54 @@ function SavePlaceButton({ place }) {
 // PLACE CARD
 // =====================================================
 
-function getPlaceImage(place, index = 0) {
-  const text = `${place.Place_Name || ''} ${place.Category || ''} ${place.City || ''}`.toLowerCase();
-
-  const imageGroups = [
-    { terms: ['temple', 'mandir', 'shrine', 'church', 'mosque', 'religious'], ids: ['photo-1548013146-72479768bada', 'photo-1564769625905-50e93615e769', 'photo-1518709268805-4e9042af9f23'] },
-    { terms: ['beach', 'sea', 'coast', 'island', 'marine'], ids: ['photo-1507525428034-b723cf961d3e', 'photo-1519046904884-53103b34b206', 'photo-1499793983690-e29da59ef1c2'] },
-    { terms: ['waterfall', 'falls', 'river', 'lake', 'dam', 'water'], ids: ['photo-1439066615861-d1af74d74000', 'photo-1470770841072-f978cf4d019e', 'photo-1433086966358-54859d0ed716'] },
-    { terms: ['mountain', 'hill', 'hills', 'valley', 'peak', 'trek'], ids: ['photo-1464822759023-fed622ff2c3b', 'photo-1501785888041-af3ef285b470', 'photo-1464278533981-50106e6176b1'] },
-    { terms: ['fort', 'palace', 'heritage', 'monument', 'historic', 'architecture', 'museum'], ids: ['photo-1564507592333-c60657eea523', 'photo-1599661046827-dacff0c0f09a', 'photo-1524492412937-b28074a5d7da'] },
-    { terms: ['park', 'garden', 'forest', 'wildlife', 'zoo', 'nature', 'sanctuary'], ids: ['photo-1441974231531-c6227db76b6e', 'photo-1472396961693-142e6e269027', 'photo-1500530855697-b586d89ba3ee'] },
-    { terms: ['city', 'market', 'street', 'shopping', 'urban'], ids: ['photo-1519501025264-65ba15a82390', 'photo-1519608487953-e999c86e7455', 'photo-1518005020951-ecc8e9c5f8c1'] }
-  ];
-
-  const match = imageGroups.find(group => group.terms.some(term => text.includes(term)));
-  const ids = match?.ids || ['photo-1500530855697-b586d89ba3ee', 'photo-1470770841072-f978cf4d019e', 'photo-1501785888041-af3ef285b470'];
-  const id = ids[Math.abs(index) % ids.length];
-  return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=85`;
-}
-
 function PlaceCard({ place, index = 0 }) {
   const name = place.Place_Name || 'Local discovery';
   const city = place.City || '';
   const cat = place.Category || 'Place';
-  const [imageSrc, setImageSrc] = useState(() => getPlaceImage(place, index));
-  const [imageFailed, setImageFailed] = useState(false);
 
-  useEffect(() => {
-    setImageSrc(getPlaceImage(place, index));
-    setImageFailed(false);
-  }, [name, city, cat, index]);
+  const imgs = [
+    'photo-1519608487953-e999c86e7455',
+    'photo-1501785888041-af3ef285b470',
+    'photo-1518005020951-ecc8e9c5f8c1',
+    'photo-1500530855697-b586d89ba3ee',
+    'photo-1470770841072-f978cf4d019e',
+    'photo-1464822759023-fed622ff2c3b'
+  ];
 
   return (
     <article className="place-card">
+
       <Link to={`/place/${encodeURIComponent(name)}`}>
-        <div className="place-image">
-          <img
-            src={imageSrc}
-            alt={`${name}, ${city}`}
-            loading="lazy"
-            onError={() => {
-              if (!imageFailed) {
-                setImageFailed(true);
-                setImageSrc('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85');
-              }
-            }}
-          />
+
+        <div
+          className="place-image"
+          style={{
+            backgroundImage: `url(https://images.unsplash.com/${imgs[index % imgs.length]}?auto=format&fit=crop&w=700&q=80)`
+          }}
+        >
           <span>{cat}</span>
+
           <SavePlaceButton place={place} />
+
         </div>
+
         <div className="place-info">
+
           <h3>{name}</h3>
+
           <div className="place-meta">
             <MapPin size={14} />
             {city || 'Explore nearby'}
             <span>·</span>
-            {place.Latitude && place.Longitude ? 'Mapped location' : 'Discover'}
+            {place.Latitude && place.Longitude
+              ? 'Mapped location'
+              : 'Discover'}
           </div>
+
         </div>
+
       </Link>
+
     </article>
   );
 }
