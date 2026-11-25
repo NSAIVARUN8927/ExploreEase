@@ -1,4 +1,6 @@
-from pydantic import field_validator
+import os
+
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -6,7 +8,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "ExploreEase API"
     API_V1_PREFIX: str = "/api/v1"
     SECRET_KEY: str = "CHANGE-ME-IN-PRODUCTION-USE-A-LONG-RANDOM-SECRET"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
     DATABASE_URL: str = "sqlite:///./exploreease.db"
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
@@ -15,11 +17,25 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def use_sqlite_when_database_url_is_blank(cls, value):
-        # The supplied .env.example intentionally leaves DATABASE_URL blank.
-        # Treat that blank value as the documented local SQLite fallback.
+        # Keep SQLite as a convenient local-development fallback.
         if value is None or (isinstance(value, str) and not value.strip()):
             return "sqlite:///./exploreease.db"
+        value = value.strip()
+        # Explicitly select the installed psycopg v3 SQLAlchemy driver.
+        if value.startswith("postgres://"):
+            value = value.replace("postgres://", "postgresql+psycopg://", 1)
+        elif value.startswith("postgresql://"):
+            value = value.replace("postgresql://", "postgresql+psycopg://", 1)
         return value
+
+    @model_validator(mode="after")
+    def require_persistent_database_on_render(self):
+        if os.getenv("RENDER", "").lower() == "true" and self.DATABASE_URL.startswith("sqlite"):
+            raise ValueError(
+                "Render requires a persistent PostgreSQL DATABASE_URL. "
+                "Set the Neon connection string in the backend service Environment."
+            )
+        return self
 
     @field_validator("API_V1_PREFIX")
     @classmethod
