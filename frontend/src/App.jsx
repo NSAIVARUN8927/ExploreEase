@@ -376,6 +376,59 @@ function SavePlaceButton({ place }) {
 // PLACE CARD
 // =====================================================
 
+function PlaceCard({ place, index = 0 }) {
+  const name = place.Place_Name || 'Local discovery';
+  const city = place.City || '';
+  const cat = place.Category || 'Place';
+
+  const imgs = [
+    'photo-1519608487953-e999c86e7455',
+    'photo-1501785888041-af3ef285b470',
+    'photo-1518005020951-ecc8e9c5f8c1',
+    'photo-1500530855697-b586d89ba3ee',
+    'photo-1470770841072-f978cf4d019e',
+    'photo-1464822759023-fed622ff2c3b'
+  ];
+
+  return (
+    <article className="place-card">
+
+      <Link to={`/place/${encodeURIComponent(name)}`}>
+
+        <div
+          className="place-image"
+          style={{
+            backgroundImage: `url(https://images.unsplash.com/${imgs[index % imgs.length]}?auto=format&fit=crop&w=700&q=80)`
+          }}
+        >
+          <span>{cat}</span>
+
+          <SavePlaceButton place={place} />
+
+        </div>
+
+        <div className="place-info">
+
+          <h3>{name}</h3>
+
+          <div className="place-meta">
+            <MapPin size={14} />
+            {city || 'Explore nearby'}
+            <span>·</span>
+            {place.Latitude && place.Longitude
+              ? 'Mapped location'
+              : 'Discover'}
+          </div>
+
+        </div>
+
+      </Link>
+
+    </article>
+  );
+}
+// =====================================================
+
 // Cache destination images so the same place is not searched repeatedly.
 const placeImageCache = new Map();
 
