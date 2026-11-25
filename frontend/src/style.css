@@ -49,14 +49,11 @@ a {
   margin: 0 0 54px 5px;
 }
 
-.brand-icon {
-  width: 39px;
-  height: 39px;
-  border-radius: 13px;
-  background: #b7f36b;
-  color: #102039;
-  display: grid;
-  place-items: center;
+.brand-logo {
+  width: 43px;
+  height: 43px;
+  object-fit: contain;
+  flex: 0 0 43px;
 }
 
 .brand-light {
